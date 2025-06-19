@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Simulador de Colisiones DJB2</title>
+  <title>Simulador de Colisiones DJB2 (Corregido)</title>
   <style>
     :root {
       --primary: #4e73df;
@@ -33,7 +33,7 @@
 </head>
 <body>
   <div class="container">
-    <h1>Simulador de Colisiones DJB2</h1>
+    <h1>Simulador de Colisiones DJB2 (Corregido)</h1>
     <label for="words">Palabras (separadas por comas):</label>
     <textarea id="words" placeholder="Ejemplo: abc, cab, acb, bca"></textarea>
     <label for="modulo">Valor de M (tamaño de la tabla):</label>
@@ -43,12 +43,14 @@
   </div>
 
   <script>
+    // Función DJB2 que evita valores negativos usando entero sin signo
     function djb2(str) {
-      let h = 5381;
+      let hash = 5381;
       for (let i = 0; i < str.length; i++) {
-        h = ((h << 5) + h) + str.charCodeAt(i);
+        // hash * 33 + c, forzar entero sin signo 32 bits
+        hash = ((hash * 33) + str.charCodeAt(i)) >>> 0;
       }
-      return h;
+      return hash; // ya es un entero sin signo
     }
 
     document.getElementById('compute').addEventListener('click', () => {
@@ -60,11 +62,15 @@
       if (isNaN(M) || M < 2) { alert('M debe ser un número ≥ 2.'); return; }
       const words = raw.split(',').map(w => w.trim()).filter(w => w);
       const buckets = Array.from({ length: M }, () => []);
+
+      // Calcular y agrupar en buckets
       words.forEach(w => {
-        const hash = djb2(w);
-        const idx = hash % M;
-        buckets[idx].push({ word: w, hash });
+        const rawHash = djb2(w);
+        const idx = rawHash % M;  // siempre positivo
+        buckets[idx].push({ word: w, index: idx });
       });
+
+      // Renderizar buckets
       buckets.forEach((bucket, i) => {
         const div = document.createElement('div');
         div.className = 'bucket';
@@ -75,7 +81,7 @@
         bucket.forEach(item => {
           const wspan = document.createElement('span');
           wspan.className = 'word';
-          wspan.textContent = `${item.word} (→ ${item.hash % M})`;
+          wspan.textContent = `${item.word} (→ ${item.index})`;
           div.appendChild(wspan);
         });
         mapContainer.appendChild(div);
